@@ -1,0 +1,23 @@
+<div class="text-center p-10">
+    <h2 class="text-3xl mb-4">Administração</h2>
+    <input type="file" (change)="onFileSelected($event)" class="mb-4" />
+    <button 
+      class="px-6 py-2 bg-yellow-500 text-white rounded-lg"
+      (click)="assignLuckyNumbers()">Atribuir Números</button>
+  
+    <div *ngIf="users.length">
+      <h3 class="mt-4 text-2xl">Usuários Registrados</h3>
+      <ul class="list-disc ml-5">
+        <li *ngFor="let user of users">{{ user.id }} - {{ user.luckyNumber }}</li>
+      </ul>
+    </div>
+  
+    <button 
+      class="px-6 py-2 bg-red-500 text-white rounded-lg mt-4"
+      (click)="drawLottery()">Realizar Sorteio</button>
+  
+    <div *ngIf="winner">
+      <h3 class="mt-4 text-2xl">O vencedor é: {{ winner.name }}</h3>
+    </div>
+  </div>
+  
