@@ -23,6 +23,7 @@ export class AdminComponent implements OnInit {
 
   constructor(private http: HttpClient) {}
 
+  // Lê o arquivo Excel e converte para JSON
   onFileSelected(event: any) {
     const file = event.target.files[0];
     const reader = new FileReader();
@@ -36,6 +37,7 @@ export class AdminComponent implements OnInit {
     reader.readAsBinaryString(file);
   }
 
+  // Adiciona os usuários ao banco de dados
   async addUsersToDb(users: any[]) {
     for (const user of users) {
       let id = user.id;
@@ -43,7 +45,7 @@ export class AdminComponent implements OnInit {
       let currentMonth = user.month;
       try {
         const existingUsers = await this.http.get<any[]>(`http://localhost:5000/users`).toPromise();
-        const existingUser = existingUsers?.find(u => u.id === Number(id));
+        const existingUser = existingUsers?.find(u => u.id == Number(id));
 
         if (existingUser) {
           await this.addLuckyNumberToUser(existingUser, currentMonth);
@@ -64,23 +66,38 @@ export class AdminComponent implements OnInit {
 
   async addLuckyNumberToUser(user: any, currentMonth: string) {
     try {
-      let luckyNumber = await this.generateUniqueLuckyNumber();
-      
       let existingLuckyNumber = user.luckyNumbers?.find((ln: any) => ln.month === currentMonth);
-  
+      
       if (!existingLuckyNumber) {
-        const userIndex = this.users.findIndex((dbUser: any) => dbUser.id === user.id);
-        
+        let luckyNumber = await this.generateUniqueLuckyNumber();
+
+        const existingLuckyNumbers = await this.http.get<any[]>(`http://localhost:5000/users`).toPromise();
+        const existingNumbers = existingLuckyNumbers?.flatMap(user => user.luckyNumbers.map((ln: any) => ln.number));
+
+        while (existingNumbers?.includes(luckyNumber)) {
+          luckyNumber = Math.floor(Math.random() * 9999) + 1;
+        }
+
+        const userIndex = this.users.findIndex((dbUser: any) => dbUser.id == user.id);
         if (userIndex !== -1) {
           this.users[userIndex].luckyNumbers.push({ number: luckyNumber, month: currentMonth });
-          console.log(`Número da sorte adicionado para o usuário ${user.name}`);
-          console.log(`http://localhost:5000/users/${user.id}`)
-          console.log(`${typeof(user.id)}`)
-          const response = await this.http.patch(`http://localhost:5000/users/${user.id}`, {
-            luckyNumbers: this.users[userIndex].luckyNumbers
-          }).toPromise();
-          
-          console.log('Resposta do servidor:', response);
+
+          const response = await fetch(`http://localhost:5000/users/${user.id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              luckyNumbers: this.users[userIndex].luckyNumbers
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error('Falha ao atualizar o usuário no servidor');
+          }
+
+          const data = await response.json();
+          console.log('Resposta do servidor:', data);
         } else {
           console.error(`Usuário com ID ${user.id} não encontrado no banco de dados.`);
         }
@@ -91,9 +108,8 @@ export class AdminComponent implements OnInit {
       console.error('Erro ao gerar número da sorte ou atualizar o usuário:', error);
     }
   }
-  
-  
-  
+
+  // Gera um número da sorte único
   async generateUniqueLuckyNumber(): Promise<number> {
     let luckyNumber = Math.floor(Math.random() * 9999) + 1;
 
@@ -101,6 +117,7 @@ export class AdminComponent implements OnInit {
       const existingUsers = await this.http.get<any[]>(`http://localhost:5000/users`).toPromise();
       const existingLuckyNumbers = existingUsers?.flatMap(user => user.luckyNumbers.map((ln: any) => ln.number));
 
+      // Garante que o número seja único
       while (existingLuckyNumbers?.includes(luckyNumber)) {
         luckyNumber = Math.floor(Math.random() * 9999) + 1;
       }
@@ -111,6 +128,7 @@ export class AdminComponent implements OnInit {
     }
   }
 
+  // Carrega os usuários do banco de dados
   assignLuckyNumbers() {
     this.http.get<any[]>(`http://localhost:5000/users`).subscribe({
       next: (users) => {
@@ -123,7 +141,7 @@ export class AdminComponent implements OnInit {
   }
 
   drawLottery() {
-    const allLuckyNumbers = this.users.flatMap(user => 
+    const allLuckyNumbers = this.users.flatMap(user =>
       user.luckyNumbers.map((lucky: LuckyNumber) => ({ number: lucky.number, user: user }))
     );
 
