@@ -1,7 +1,18 @@
-<div class="text-center p-10">
-    <h1 class="text-4xl font-bold mb-4">Bem-vindo ao Sistema de Sorteio</h1>
-    <button 
-      class="px-6 py-3 bg-blue-500 text-white rounded-lg"
-      (click)="navigateToNumbers()">Ver meus números</button>
-  </div>
+<div class="flex flex-col items-center justify-center min-h-screen bg-purple-200 p-6">
+  <!-- Título da página -->
+  <h1 class="text-4xl font-bold text-gray-800 mb-6 text-center">
+    Bem-vindo ao Sistema de Sorteio
+  </h1>
+
+  <!-- Botão para navegar -->
+  <button 
+    class="px-8 py-4 bg-purple-500 text-white font-semibold rounded-lg shadow-md hover:bg-purple-600 transition duration-300 transform hover:scale-105"
+    (click)="navigateToNumbers()">
+    Ver meus números
+  </button>
   
+  <!-- Texto adicional (se necessário) -->
+  <p class="text-lg text-gray-600 mt-4">
+    Clique no botão acima para acessar os seus números sorteados e muito mais.
+  </p>
+</div>

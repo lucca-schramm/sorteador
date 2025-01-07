@@ -1,33 +1,64 @@
-<div class="container">
-  <h2>Buscar Números da Sorte</h2>
+<div class="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg mt-10">
+  <h2 class="text-3xl font-bold text-center text-gray-800 mb-8">Buscar Números da Sorte</h2>
 
-  <div>
-    <label for="userId">ID do Usuário: </label>
-    <input class="text-center" type="text" id="userId" [(ngModel)]="id" placeholder="Digite o ID do usuário" />
-    <button class="button cursor-pointer rounded-md bg-green-500 p-2" (click)="getUserNumbers()">Buscar Números</button>
-  </div>
+  <div class="space-y-6">
+    <!-- Input de ID do Usuário -->
+    <div>
+      <label for="userId" class="block text-lg font-medium text-gray-700">ID do Usuário</label>
+      <input 
+        class="mt-2 w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" 
+        type="text" 
+        id="userId" 
+        [(ngModel)]="id" 
+        placeholder="Digite o ID do usuário"
+      />
+    </div>
 
-  <div *ngIf="errorMessage" class="alert alert-danger">
-    {{ errorMessage }}
-  </div>
+    <!-- Botão de Buscar -->
+    <div class="text-center">
+      <button 
+        class="px-6 py-3 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 transition duration-200"
+        (click)="getUserNumbers()">
+        Buscar Números
+      </button>
+    </div>
 
-  <div *ngIf="successMessage" class="alert alert-success">
-    {{ successMessage }}
-  </div>
+    <!-- Mensagens de Erro e Sucesso -->
+    <div *ngIf="errorMessage" class="alert alert-danger text-red-600 p-4 border border-red-200 rounded-md bg-red-50">
+      {{ errorMessage }}
+    </div>
 
-  <div *ngIf="userNumbers.length > 0">
-    <h3>Meus números da Sorte:</h3>
-    <ul>
-      <li *ngFor="let item of userNumbers; let i = index">
-        Mês de referência: <strong>{{ item.month }} </strong><br>
-        <span>Número da Sorte: </span><input class="font-bold" type="number" [(ngModel)]="userNumbers[i].number" readonly />
-      </li>
-    </ul>
+    <div *ngIf="successMessage" class="alert alert-success text-green-600 p-4 border border-green-200 rounded-md bg-green-50">
+      {{ successMessage }}
+    </div>
 
-    <!--button class="button cursor-pointer rounded-md bg-green-500 p-2" (click)="updateUserLuckyNumber()">Atualizar</button-->
-  </div>
+    <!-- Lista de Números da Sorte -->
+    <div *ngIf="userNumbers.length > 0">
+      <h3 class="text-2xl font-semibold text-gray-800 mt-6 mb-4">Meus Números da Sorte:</h3>
+      <ul class="space-y-4">
+        <li *ngFor="let item of userNumbers; let i = index" class="p-4 border border-gray-200 rounded-md bg-gray-50">
+          <p class="text-sm text-gray-600">Mês de referência: <strong class="text-gray-800">{{ item.month }}</strong></p>
+          <div class="flex items-center mt-2">
+            <span class="text-lg text-gray-700 mr-4">Número da Sorte:</span>
+            <input 
+              class="w-32 py-2 px-4 text-center font-bold text-lg text-gray-800 bg-gray-200 rounded-md cursor-not-allowed" 
+              type="number" 
+              [(ngModel)]="userNumbers[i].number" 
+              readonly
+            />
+          </div>
+        </li>
+      </ul>
 
-  <div *ngIf="userNumbers.length === 0" class="alert alert-warning">
-    Nenhum número da sorte encontrado para este usuário.
+      <!-- Botão de Atualização -->
+      <!-- <div class="text-center mt-4">
+        <button class="px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 transition duration-200" (click)="updateUserLuckyNumber()">Atualizar</button>
+      </div> -->
+    </div>
+
+    <!-- Mensagem de Aviso quando não houver números -->
+    <div *ngIf="userNumbers.length === 0" class="alert alert-warning text-yellow-600 p-4 border border-yellow-200 rounded-md bg-yellow-50">
+      Nenhum número da sorte encontrado para este usuário.
+    </div>
   </div>
 </div>

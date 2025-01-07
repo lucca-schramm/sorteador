@@ -10,6 +10,7 @@ import { FormsModule } from '@angular/forms';
   templateUrl: './numbers.component.html',
   styleUrls: ['./numbers.component.css']
 })
+
 export class NumbersComponent {
   id: string = '';
   userNumbers: { number: number; month: string }[] = [];
