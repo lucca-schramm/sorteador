@@ -23,7 +23,6 @@ export class AdminComponent implements OnInit {
 
   constructor(private http: HttpClient) {}
 
-  // Lê o arquivo Excel e converte para JSON
   onFileSelected(event: any) {
     const file = event.target.files[0];
     const reader = new FileReader();
@@ -37,7 +36,6 @@ export class AdminComponent implements OnInit {
     reader.readAsBinaryString(file);
   }
 
-  // Adiciona os usuários ao banco de dados
   async addUsersToDb(users: any[]) {
     for (const user of users) {
       let id = user.id;
@@ -109,7 +107,6 @@ export class AdminComponent implements OnInit {
     }
   }
 
-  // Gera um número da sorte único
   async generateUniqueLuckyNumber(): Promise<number> {
     let luckyNumber = Math.floor(Math.random() * 9999) + 1;
 
@@ -117,7 +114,6 @@ export class AdminComponent implements OnInit {
       const existingUsers = await this.http.get<any[]>(`http://localhost:5000/users`).toPromise();
       const existingLuckyNumbers = existingUsers?.flatMap(user => user.luckyNumbers.map((ln: any) => ln.number));
 
-      // Garante que o número seja único
       while (existingLuckyNumbers?.includes(luckyNumber)) {
         luckyNumber = Math.floor(Math.random() * 9999) + 1;
       }
@@ -128,7 +124,6 @@ export class AdminComponent implements OnInit {
     }
   }
 
-  // Carrega os usuários do banco de dados
   assignLuckyNumbers() {
     this.http.get<any[]>(`http://localhost:5000/users`).subscribe({
       next: (users) => {

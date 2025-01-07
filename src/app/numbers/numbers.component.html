@@ -7,23 +7,20 @@
     <button class="button cursor-pointer rounded-md bg-green-500 p-2" (click)="getUserNumbers()">Buscar Números</button>
   </div>
 
-  <!-- Exibir erros -->
   <div *ngIf="errorMessage" class="alert alert-danger">
     {{ errorMessage }}
   </div>
 
-  <!-- Exibir sucesso -->
   <div *ngIf="successMessage" class="alert alert-success">
     {{ successMessage }}
   </div>
 
-  <!-- Lista de Números da Sorte -->
   <div *ngIf="userNumbers.length > 0">
     <h3>Meus números da Sorte:</h3>
     <ul>
       <li *ngFor="let item of userNumbers; let i = index">
         Mês de referência: <strong>{{ item.month }} </strong><br>
-        <span>Número da Sorte: </span><input type="number" [(ngModel)]="userNumbers[i].number" readonly />
+        <span>Número da Sorte: </span><input class="font-bold" type="number" [(ngModel)]="userNumbers[i].number" readonly />
       </li>
     </ul>
 

@@ -29,7 +29,7 @@ export class NumbersComponent {
 
     this.http.get<any[]>(`http://localhost:5000/users`).subscribe({
       next: users => {
-        const user = users.find(u => u.id === Number(this.id));
+        const user = users.find(u => u.id == Number(this.id));
         if (user && user.luckyNumbers && user.luckyNumbers.length > 0) {
           this.userNumbers = user.luckyNumbers;
         } else {
