@@ -20,7 +20,7 @@ export class AdminComponent implements OnInit {
   winner: any = null;
   winnerNumber: any = null;
   json = [];
-  
+
   constructor(private http: HttpClient) {}
 
   onFileSelected(event: any) {
@@ -36,77 +36,89 @@ export class AdminComponent implements OnInit {
     reader.readAsBinaryString(file);
   }
 
-  addUsersToDb(users: any[]) {
-    users.forEach(user => {
-      const id = user.id;
-      const name = user.nome;
-      const currentMonth = user.mes;
-
-      this.http.get<any[]>(`http://localhost:5000/users`).subscribe(existingUsers => {
-        const existingUser = existingUsers.find(u => u.id === id);
+  async addUsersToDb(users: any[]) {
+    for (const user of users) {
+      let id = user.id;
+      let name = user.name;
+      let currentMonth = user.month;
+      try {
+        const existingUsers = await this.http.get<any[]>(`http://localhost:5000/users`).toPromise();
+        const existingUser = existingUsers?.find(u => u.id === Number(id));
 
         if (existingUser) {
-          this.addLuckyNumberToUser(existingUser, currentMonth);
+          await this.addLuckyNumberToUser(existingUser, currentMonth);
         } else {
-          this.generateUniqueLuckyNumber().then(uniqueLuckyNumber => {
-            this.http.post(`http://localhost:5000/users`, { 
-              id, 
-              name, 
-              luckyNumbers: [{ number: uniqueLuckyNumber, month: currentMonth }],
-            }).subscribe({
-              next: () => console.log(`Usuário ${name} adicionado com sucesso!`),
-              error: (err) => console.error('Erro ao adicionar o usuário:', err)
-            });
-          });
+          const uniqueLuckyNumber = await this.generateUniqueLuckyNumber();
+          await this.http.post(`http://localhost:5000/users`, {
+            id,
+            name,
+            luckyNumbers: [{ number: uniqueLuckyNumber, month: currentMonth }]
+          }).toPromise();
+          console.log(`Usuário ${name} adicionado com sucesso!`);
         }
-      });
-    });
-  }
-
-  // Função para adicionar número da sorte ao usuário existente
-  addLuckyNumberToUser(user: any, currentMonth: string) {
-    const luckyNumber = Math.floor(Math.random() * 9999) + 1; // Gera um número da sorte
-
-    // Verifica se o número já existe para o mês atual
-    const existingLuckyNumber = user.luckyNumbers?.find((ln: any) => ln.month === currentMonth);
-
-    if (!existingLuckyNumber) {
-      // Se não houver número para o mês, adiciona o número ao array
-      user.luckyNumbers.push({ number: luckyNumber, month: currentMonth });
-
-      this.http.put(`http://localhost:5000/users/${user.id}`, user).subscribe({
-        next: () => console.log(`Número da sorte adicionado para o usuário ${user.name}`),
-        error: (err) => console.error('Erro ao atualizar número da sorte do usuário:', err)
-      });
-    } else {
-      console.log(`Usuário ${user.name} já tem um número da sorte para o mês ${currentMonth}`);
+      } catch (err) {
+        console.error('Erro ao adicionar o usuário:', err);
+      }
     }
   }
 
-  generateUniqueLuckyNumber(): Promise<number> {
-    return new Promise((resolve, reject) => {
-      let luckyNumber = Math.floor(Math.random() * 9999) + 1;
-
-      this.http.get<any[]>(`http://localhost:5000/users`).subscribe(existingUsers => {
-        const existingLuckyNumbers = existingUsers.flatMap(user => user.luckyNumbers.map((ln: any) => ln.number));
+  async addLuckyNumberToUser(user: any, currentMonth: string) {
+    try {
+      let luckyNumber = await this.generateUniqueLuckyNumber();
+      
+      let existingLuckyNumber = user.luckyNumbers?.find((ln: any) => ln.month === currentMonth);
+  
+      if (!existingLuckyNumber) {
+        const userIndex = this.users.findIndex((dbUser: any) => dbUser.id === user.id);
         
-        while (existingLuckyNumbers.includes(luckyNumber)) {
-          luckyNumber = Math.floor(Math.random() * 9999) + 1;
+        if (userIndex !== -1) {
+          this.users[userIndex].luckyNumbers.push({ number: luckyNumber, month: currentMonth });
+          console.log(`Número da sorte adicionado para o usuário ${user.name}`);
+          console.log(`http://localhost:5000/users/${user.id}`)
+          console.log(`${typeof(user.id)}`)
+          const response = await this.http.patch(`http://localhost:5000/users/${user.id}`, {
+            luckyNumbers: this.users[userIndex].luckyNumbers
+          }).toPromise();
+          
+          console.log('Resposta do servidor:', response);
+        } else {
+          console.error(`Usuário com ID ${user.id} não encontrado no banco de dados.`);
         }
-        
-        resolve(luckyNumber);
-      }, error => {
-        reject('Erro ao verificar números existentes no banco de dados.');
-      });
-    });
+      } else {
+        console.log(`Usuário ${user.name} já tem um número da sorte para o mês ${currentMonth}`);
+      }
+    } catch (error) {
+      console.error('Erro ao gerar número da sorte ou atualizar o usuário:', error);
+    }
+  }
+  
+  
+  
+  async generateUniqueLuckyNumber(): Promise<number> {
+    let luckyNumber = Math.floor(Math.random() * 9999) + 1;
+
+    try {
+      const existingUsers = await this.http.get<any[]>(`http://localhost:5000/users`).toPromise();
+      const existingLuckyNumbers = existingUsers?.flatMap(user => user.luckyNumbers.map((ln: any) => ln.number));
+
+      while (existingLuckyNumbers?.includes(luckyNumber)) {
+        luckyNumber = Math.floor(Math.random() * 9999) + 1;
+      }
+
+      return luckyNumber;
+    } catch (error) {
+      throw new Error('Erro ao verificar números existentes no banco de dados.');
+    }
   }
 
-  // Função para carregar usuários para a lista
   assignLuckyNumbers() {
-    this.http.get<any[]>(`http://localhost:5000/users`).subscribe(users => {
-      this.users = users;
-    }, error => {
-      console.error('Erro ao carregar usuários:', error);
+    this.http.get<any[]>(`http://localhost:5000/users`).subscribe({
+      next: (users) => {
+        this.users = users;
+      },
+      error: (error) => {
+        console.error('Erro ao carregar usuários:', error);
+      }
     });
   }
 
@@ -114,21 +126,20 @@ export class AdminComponent implements OnInit {
     const allLuckyNumbers = this.users.flatMap(user => 
       user.luckyNumbers.map((lucky: LuckyNumber) => ({ number: lucky.number, user: user }))
     );
-  
+
     if (allLuckyNumbers.length === 0) {
       console.log('Não há números da sorte para sortear.');
       return;
     }
-  
+
     const randomIndex = Math.floor(Math.random() * allLuckyNumbers.length);
     const selectedLuckyNumber = allLuckyNumbers[randomIndex];
-  
+
     this.winner = selectedLuckyNumber.user;
     this.winnerNumber = selectedLuckyNumber.number;
-  
+
     console.log(`Vencedor: ${this.winner.name}, Número da Sorte: ${this.winnerNumber}`);
   }
-  
 
   ngOnInit(): void {
     this.assignLuckyNumbers();

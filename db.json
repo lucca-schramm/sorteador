@@ -5,18 +5,8 @@
       "name": "Ana Souza",
       "luckyNumbers": [
         {
-          "number": 827,
-          "month": "Dezembro"
-        }
-      ]
-    },
-    {
-      "id": 10003,
-      "name": "Maria Silva",
-      "luckyNumbers": [
-        {
-          "number": 3547,
-          "month": "Dezembro"
+          "number": 2483,
+          "month": "Março"
         }
       ]
     },
@@ -25,178 +15,18 @@
       "name": "João Pereira",
       "luckyNumbers": [
         {
-          "number": 2858,
-          "month": "Dezembro"
+          "number": 2949,
+          "month": "Março"
         }
       ]
     },
     {
-      "id": 10006,
-      "name": "Pedro Almeida",
+      "id": 10003,
+      "name": "Carlos Silva",
       "luckyNumbers": [
         {
-          "number": 9298,
-          "month": "Dezembro"
-        }
-      ]
-    },
-    {
-      "id": 10004,
-      "name": "Carlos Oliveira",
-      "luckyNumbers": [
-        {
-          "number": 5937,
-          "month": "Dezembro"
-        }
-      ]
-    },
-    {
-      "id": 10005,
-      "name": "Laura Costa",
-      "luckyNumbers": [
-        {
-          "number": 7883,
-          "month": "Dezembro"
-        }
-      ]
-    },
-    {
-      "id": 10007,
-      "name": "Fernanda Santos",
-      "luckyNumbers": [
-        {
-          "number": 485,
-          "month": "Dezembro"
-        }
-      ]
-    },
-    {
-      "id": 10008,
-      "name": "Lucas Ferreira",
-      "luckyNumbers": [
-        {
-          "number": 9471,
-          "month": "Dezembro"
-        }
-      ]
-    },
-    {
-      "id": 10009,
-      "name": "Beatriz Rocha",
-      "luckyNumbers": [
-        {
-          "number": 6614,
-          "month": "Dezembro"
-        }
-      ]
-    },
-    {
-      "id": 10010,
-      "name": "Rafael Lima",
-      "luckyNumbers": [
-        {
-          "number": 431,
-          "month": "Dezembro"
-        }
-      ]
-    },
-    {
-      "id": 10011,
-      "name": "Juliana Martins",
-      "luckyNumbers": [
-        {
-          "number": 3537,
-          "month": "Dezembro"
-        }
-      ]
-    },
-    {
-      "id": 10012,
-      "name": "Marcos Duarte",
-      "luckyNumbers": [
-        {
-          "number": 866,
-          "month": "Dezembro"
-        }
-      ]
-    },
-    {
-      "id": 10013,
-      "name": "Carolina Pires",
-      "luckyNumbers": [
-        {
-          "number": 6104,
-          "month": "Dezembro"
-        }
-      ]
-    },
-    {
-      "id": 10014,
-      "name": "Gabriel Costa",
-      "luckyNumbers": [
-        {
-          "number": 8481,
-          "month": "Dezembro"
-        }
-      ]
-    },
-    {
-      "id": 10015,
-      "name": "Vitória Almeida",
-      "luckyNumbers": [
-        {
-          "number": 1491,
-          "month": "Dezembro"
-        }
-      ]
-    },
-    {
-      "id": 10016,
-      "name": "Felipe Barbosa",
-      "luckyNumbers": [
-        {
-          "number": 2313,
-          "month": "Dezembro"
-        }
-      ]
-    },
-    {
-      "id": 10017,
-      "name": "Camila Pereira",
-      "luckyNumbers": [
-        {
-          "number": 3068,
-          "month": "Dezembro"
-        }
-      ]
-    },
-    {
-      "id": 10018,
-      "name": "Ricardo Fernandes",
-      "luckyNumbers": [
-        {
-          "number": 6519,
-          "month": "Dezembro"
-        }
-      ]
-    },
-    {
-      "id": 10019,
-      "name": "Eduardo Silva",
-      "luckyNumbers": [
-        {
-          "number": 4664,
-          "month": "Dezembro"
-        }
-      ]
-    },
-    {
-      "id": 10020,
-      "name": "Mariana Souza",
-      "luckyNumbers": [
-        {
-          "number": 86,
-          "month": "Novembro"
+          "number": 1234,
+          "month": "Janeiro"
         }
       ]
     }

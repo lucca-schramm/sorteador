@@ -19,15 +19,15 @@
 
   <!-- Lista de Números da Sorte -->
   <div *ngIf="userNumbers.length > 0">
-    <h3>Números da Sorte:</h3>
+    <h3>Meus números da Sorte:</h3>
     <ul>
       <li *ngFor="let item of userNumbers; let i = index">
-        <strong>{{ item.month }}: </strong>
-        <input type="number" [(ngModel)]="userNumbers[i].number" readonly />
+        Mês de referência: <strong>{{ item.month }} </strong><br>
+        <span>Número da Sorte: </span><input type="number" [(ngModel)]="userNumbers[i].number" readonly />
       </li>
     </ul>
 
-    <button class="button cursor-pointer rounded-md bg-green-500 p-2" (click)="updateUserLuckyNumber()">Atualizar Números</button>
+    <!--button class="button cursor-pointer rounded-md bg-green-500 p-2" (click)="updateUserLuckyNumber()">Atualizar</button-->
   </div>
 
   <div *ngIf="userNumbers.length === 0" class="alert alert-warning">

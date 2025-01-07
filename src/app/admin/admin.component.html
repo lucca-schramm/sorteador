@@ -8,7 +8,7 @@
     <div *ngIf="users.length">
       <h3 class="mt-4 text-2xl">Usuários Registrados</h3>
       <ul class="list-disc ml-5">
-        <li *ngFor="let user of users">{{ user.id }} - {{ user.luckyNumbers | json }}</li>
+        <li *ngFor="let user of users">{{ user.id }} - {{ user.name }} - {{ user.luckyNumbers | json }}</li>
       </ul>
     </div>
   

@@ -11,25 +11,24 @@ import { FormsModule } from '@angular/forms';
   styleUrls: ['./numbers.component.css']
 })
 export class NumbersComponent {
-  id: string = '';  // ID do usuário
-  userNumbers: { number: number; month: string }[] = [];  // Números da sorte do usuário
-  errorMessage: string = '';  // Mensagens de erro
-  successMessage: string = ''; // Mensagem de sucesso
+  id: string = '';
+  userNumbers: { number: number; month: string }[] = [];
+  errorMessage: string = '';
+  successMessage: string = '';
 
   constructor(private http: HttpClient) {}
 
-  // Função para buscar os números da sorte do usuário
   getUserNumbers() {
-    this.errorMessage = ''; // Limpa a mensagem de erro anterior
-    this.successMessage = ''; // Limpa a mensagem de sucesso
+    this.errorMessage = '';
+    this.successMessage = '';
 
     if (!this.id.trim()) {
       this.errorMessage = 'Por favor, digite um ID válido.';
       return;
     }
 
-    this.http.get<any[]>(`http://localhost:5000/users`).subscribe(
-      users => {
+    this.http.get<any[]>(`http://localhost:5000/users`).subscribe({
+      next: users => {
         const user = users.find(u => u.id === Number(this.id));
         if (user && user.luckyNumbers && user.luckyNumbers.length > 0) {
           this.userNumbers = user.luckyNumbers;
@@ -38,17 +37,16 @@ export class NumbersComponent {
           this.errorMessage = 'Você ainda não tem números da sorte registrados.';
         }
       },
-      (error) => {
+      error: (error) => {
         console.error('Erro ao buscar números do usuário:', error);
         this.userNumbers = [];
         this.errorMessage = 'Ocorreu um erro ao buscar os números. Tente novamente mais tarde.';
       }
-    );
+    });
   }
 
-  // Função para atualizar os números da sorte do usuário
-  updateUserLuckyNumber() {
-    this.successMessage = '';  // Limpa a mensagem de sucesso
+  /*updateUserLuckyNumber() {
+    this.successMessage = '';
 
     if (!this.id.trim()) {
       this.errorMessage = 'Por favor, forneça um ID de usuário válido.';
@@ -76,5 +74,5 @@ export class NumbersComponent {
         this.errorMessage = 'Usuário não encontrado.';
       }
     });
-  }
+  }*/
 }
