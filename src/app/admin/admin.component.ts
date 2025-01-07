@@ -1,7 +1,12 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import * as XLSX from 'xlsx';
 import { CommonModule } from '@angular/common';
+
+interface LuckyNumber {
+  number: number;
+  month: string;
+}
 
 @Component({
   selector: 'app-admin',
@@ -10,13 +15,14 @@ import { CommonModule } from '@angular/common';
   templateUrl: './admin.component.html',
   styleUrls: ['./admin.component.css']
 })
-export class AdminComponent {
+export class AdminComponent implements OnInit {
   users: any[] = [];
   winner: any = null;
-
+  winnerNumber: any = null;
+  json = [];
+  
   constructor(private http: HttpClient) {}
 
-  // Função chamada ao selecionar um arquivo
   onFileSelected(event: any) {
     const file = event.target.files[0];
     const reader = new FileReader();
@@ -25,35 +31,28 @@ export class AdminComponent {
       const workbook = XLSX.read(data, { type: 'binary' });
       const sheetName = workbook.SheetNames[0];
       const sheet = workbook.Sheets[sheetName];
-      const json = XLSX.utils.sheet_to_json(sheet);
-      console.log(json)
-      this.addUsersToDb(json);
+      this.json = XLSX.utils.sheet_to_json(sheet);
     };
     reader.readAsBinaryString(file);
   }
 
-  // Função para adicionar usuários ao banco de dados, verificando se já existem
   addUsersToDb(users: any[]) {
-    const currentMonth = new Date().toLocaleString('default', { month: 'long' }); // Mês atual
     users.forEach(user => {
-      const id = user.ID;
-      console.log(id)
-      const name = user.name;
+      const id = user.id;
+      const name = user.nome;
+      const currentMonth = user.mes;
 
-      // Verifica se o usuário já existe no banco de dados
       this.http.get<any[]>(`http://localhost:5000/users`).subscribe(existingUsers => {
-        const existingUser = existingUsers.find(u => u.ID === id);
+        const existingUser = existingUsers.find(u => u.id === id);
 
         if (existingUser) {
-          // Se o usuário já existe, apenas adiciona o número da sorte ao array
           this.addLuckyNumberToUser(existingUser, currentMonth);
         } else {
-          // Se o usuário não existe, gera um número da sorte único e o adiciona
           this.generateUniqueLuckyNumber().then(uniqueLuckyNumber => {
             this.http.post(`http://localhost:5000/users`, { 
               id, 
               name, 
-              luckyNumbers: [{ number: uniqueLuckyNumber, month: currentMonth }],  // Array de números da sorte
+              luckyNumbers: [{ number: uniqueLuckyNumber, month: currentMonth }],
             }).subscribe({
               next: () => console.log(`Usuário ${name} adicionado com sucesso!`),
               error: (err) => console.error('Erro ao adicionar o usuário:', err)
@@ -111,9 +110,27 @@ export class AdminComponent {
     });
   }
 
-  // Função para sortear o vencedor
   drawLottery() {
-    const winnerIndex = Math.floor(Math.random() * this.users.length);
-    this.winner = this.users[winnerIndex];
+    const allLuckyNumbers = this.users.flatMap(user => 
+      user.luckyNumbers.map((lucky: LuckyNumber) => ({ number: lucky.number, user: user }))
+    );
+  
+    if (allLuckyNumbers.length === 0) {
+      console.log('Não há números da sorte para sortear.');
+      return;
+    }
+  
+    const randomIndex = Math.floor(Math.random() * allLuckyNumbers.length);
+    const selectedLuckyNumber = allLuckyNumbers[randomIndex];
+  
+    this.winner = selectedLuckyNumber.user;
+    this.winnerNumber = selectedLuckyNumber.number;
+  
+    console.log(`Vencedor: ${this.winner.name}, Número da Sorte: ${this.winnerNumber}`);
+  }
+  
+
+  ngOnInit(): void {
+    this.assignLuckyNumbers();
   }
 }

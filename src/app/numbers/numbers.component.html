@@ -1,25 +1,36 @@
-<div class="text-center p-10">
-    <h2 class="text-3xl mb-4">Digite seu ID</h2>
-    <input 
-      [(ngModel)]="userId" 
-      class="p-2 border border-gray-300 rounded mb-4" 
-      placeholder="Digite seu ID" />
-    <button 
-      class="px-6 py-2 bg-green-500 text-white rounded-lg"
-      (click)="getUserNumbers()">Ver meus números</button>
-  
-    <div *ngIf="userNumbers.length > 0">
-      <h3 class="mt-4 text-2xl">Seus números da sorte:</h3>
-      <ul class="mt-4">
-        <li *ngFor="let item of userNumbers">
-          <span class="font-semibold">Número:</span> {{ item.number }} - 
-          <span class="font-semibold">Mês:</span> {{ item.month }}
-        </li>
-      </ul>
-    </div>
-    
-    <div *ngIf="userNumbers.length === 0 && userId">
-      <h3 class="mt-4 text-2xl text-red-500">Você ainda não tem números da sorte registrados.</h3>
-    </div>
+<div class="container">
+  <h2>Buscar Números da Sorte</h2>
+
+  <div>
+    <label for="userId">ID do Usuário: </label>
+    <input class="text-center" type="text" id="userId" [(ngModel)]="id" placeholder="Digite o ID do usuário" />
+    <button class="button cursor-pointer rounded-md bg-green-500 p-2" (click)="getUserNumbers()">Buscar Números</button>
   </div>
-  
+
+  <!-- Exibir erros -->
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Exibir sucesso -->
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+  </div>
+
+  <!-- Lista de Números da Sorte -->
+  <div *ngIf="userNumbers.length > 0">
+    <h3>Números da Sorte:</h3>
+    <ul>
+      <li *ngFor="let item of userNumbers; let i = index">
+        <strong>{{ item.month }}: </strong>
+        <input type="number" [(ngModel)]="userNumbers[i].number" readonly />
+      </li>
+    </ul>
+
+    <button class="button cursor-pointer rounded-md bg-green-500 p-2" (click)="updateUserLuckyNumber()">Atualizar Números</button>
+  </div>
+
+  <div *ngIf="userNumbers.length === 0" class="alert alert-warning">
+    Nenhum número da sorte encontrado para este usuário.
+  </div>
+</div>
