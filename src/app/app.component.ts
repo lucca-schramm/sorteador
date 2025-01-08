@@ -11,11 +11,13 @@ import { Router, RouterOutlet } from '@angular/router';  // Importe o Router
 export class AppComponent {
   title = 'sorteio-app';
 
-  // Injetando o Router para realizar navegação
   constructor(private router: Router) {}
-
-  logout(): void {
-    localStorage.removeItem('user');  // Remove o usuário do localStorage
-    this.router.navigate(['/']);  // Redireciona para a página inicial
+  
+  navigateToLogin() {
+    this.router.navigate(['/login']);
   }
+  /*logout(): void {
+    localStorage.removeItem('user');
+    this.router.navigate(['/']); 
+  }*/
 }
