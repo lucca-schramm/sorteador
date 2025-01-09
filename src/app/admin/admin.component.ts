@@ -2,48 +2,88 @@ import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import * as XLSX from 'xlsx';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { saveAs } from 'file-saver';
 
 interface LuckyNumber {
-  number: number;
+  number: string;
+  month: string;
+}
+
+interface User {
+  id: number;
+  name: string;
+  luckyNumbers: LuckyNumber[];
   month: string;
 }
 
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './admin.component.html',
   styleUrls: ['./admin.component.css']
 })
 export class AdminComponent implements OnInit {
-  users: any[] = [];
+  users: User[] = [];
   winner: any = null;
   winnerNumber: any = null;
-  json = [];
+  json: any[] = [];
 
   constructor(private http: HttpClient) {}
 
-  onFileSelected(event: any) {
-    const file = event.target.files[0];
-    const reader = new FileReader();
-    reader.onload = () => {
-      const data = reader.result as string;
-      const workbook = XLSX.read(data, { type: 'binary' });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      this.json = XLSX.utils.sheet_to_json(sheet);
-    };
-    reader.readAsBinaryString(file);
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const data = reader.result as string;
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        this.json = XLSX.utils.sheet_to_json(sheet);
+      };
+      reader.readAsBinaryString(file);
+    }
+  }
+  downloadDatabaseBackup() {
+    this.http.get<any[]>(`http://localhost:5000/users`).subscribe({
+      next: (users) => {
+        const data = JSON.stringify(users, null, 2);
+
+        const blob = new Blob([data], { type: 'application/json' });
+
+        saveAs(blob, 'backup-dados.json');
+      },
+      error: (error) => {
+        console.error('Erro ao baixar o banco de dados:', error);
+      }
+    });
   }
 
-  async addUsersToDb(users: any[]) {
+  downloadDatabaseBackupAsExcel() {
+    this.http.get<any[]>(`http://localhost:5000/users`).subscribe({
+      next: (users) => {
+        const ws = XLSX.utils.json_to_sheet(users);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Backup');
+
+        XLSX.writeFile(wb, 'backup-dados.xlsx');
+      },
+      error: (error) => {
+        console.error('Erro ao baixar o banco de dados como Excel:', error);
+      }
+    });
+  }
+
+  async addUsersToDb(users: User[]) {
     for (const user of users) {
-      let id = user.id;
-      let name = user.name;
-      let currentMonth = user.month;
+      let { id, name, month: currentMonth } = user;
+
       try {
-        const existingUsers = await this.http.get<any[]>(`http://localhost:5000/users`).toPromise();
-        const existingUser = existingUsers?.find(u => u.id == Number(id));
+        const existingUsers = await this.http.get<User[]>(`http://localhost:5000/users`).toPromise();
+        const existingUser = existingUsers?.find(u => u.id == id);
 
         if (existingUser) {
           await this.addLuckyNumberToUser(existingUser, currentMonth);
@@ -62,21 +102,21 @@ export class AdminComponent implements OnInit {
     }
   }
 
-  async addLuckyNumberToUser(user: any, currentMonth: string) {
+  async addLuckyNumberToUser(user: User, currentMonth: string) {
     try {
-      let existingLuckyNumber = user.luckyNumbers?.find((ln: any) => ln.month === currentMonth);
-      
+      let existingLuckyNumber = user.luckyNumbers.find((ln: LuckyNumber) => ln.month == currentMonth);
+
       if (!existingLuckyNumber) {
         let luckyNumber = await this.generateUniqueLuckyNumber();
 
-        const existingLuckyNumbers = await this.http.get<any[]>(`http://localhost:5000/users`).toPromise();
-        const existingNumbers = existingLuckyNumbers?.flatMap(user => user.luckyNumbers.map((ln: any) => ln.number));
+        const existingLuckyNumbers = await this.http.get<User[]>(`http://localhost:5000/users`).toPromise();
+        const existingNumbers = existingLuckyNumbers?.flatMap(u => u.luckyNumbers.map((ln: LuckyNumber) => ln.number));
 
         while (existingNumbers?.includes(luckyNumber)) {
-          luckyNumber = Math.floor(Math.random() * 9999) + 1;
+          luckyNumber = await this.generateUniqueLuckyNumber();
         }
 
-        const userIndex = this.users.findIndex((dbUser: any) => dbUser.id == user.id);
+        const userIndex = this.users.findIndex((dbUser: User) => dbUser.id == user.id);
         if (userIndex !== -1) {
           this.users[userIndex].luckyNumbers.push({ number: luckyNumber, month: currentMonth });
 
@@ -107,15 +147,15 @@ export class AdminComponent implements OnInit {
     }
   }
 
-  async generateUniqueLuckyNumber(): Promise<number> {
-    let luckyNumber = Math.floor(Math.random() * 9999) + 1;
+  async generateUniqueLuckyNumber(): Promise<string> {
+    let luckyNumber = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
 
     try {
-      const existingUsers = await this.http.get<any[]>(`http://localhost:5000/users`).toPromise();
-      const existingLuckyNumbers = existingUsers?.flatMap(user => user.luckyNumbers.map((ln: any) => ln.number));
+      const existingUsers = await this.http.get<User[]>(`http://localhost:5000/users`).toPromise();
+      const existingLuckyNumbers = existingUsers?.flatMap(user => user.luckyNumbers.map((ln: LuckyNumber) => ln.number));
 
       while (existingLuckyNumbers?.includes(luckyNumber)) {
-        luckyNumber = Math.floor(Math.random() * 9999) + 1;
+        luckyNumber = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
       }
 
       return luckyNumber;
@@ -125,7 +165,7 @@ export class AdminComponent implements OnInit {
   }
 
   assignLuckyNumbers() {
-    this.http.get<any[]>(`http://localhost:5000/users`).subscribe({
+    this.http.get<User[]>(`http://localhost:5000/users`).subscribe({
       next: (users) => {
         this.users = users;
       },
@@ -135,23 +175,52 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  drawLottery() {
-    const allLuckyNumbers = this.users.flatMap(user =>
-      user.luckyNumbers.map((lucky: LuckyNumber) => ({ number: lucky.number, user: user }))
-    );
+  lotteryNumbersInput: string = '';
+  drawResults: { number: string, position: number, user: User | null }[] = [];
 
-    if (allLuckyNumbers.length === 0) {
-      console.log('Não há números da sorte para sortear.');
+  async insertLotteryNumbers() {
+    const lotteryNumbers = this.lotteryNumbersInput.split(',').map(num => num.trim()).filter(num => num !== '');
+  
+    if (lotteryNumbers.length !== 10) {
+      alert('Por favor, insira exatamente 10 números sorteados!');
       return;
     }
+  
+    const drawnNumbers: { number: string, position: number, user: User | null }[] = [];
+  
+    lotteryNumbers.forEach((number, index) => {
+      const luckyNumber = number.trim();
+      const user = this.users.find(user => user.luckyNumbers.some(lucky => lucky.number == luckyNumber));
+  
+      drawnNumbers.push({
+        number: luckyNumber,
+        position: index + 1,
+        user: user || null,
+      });
+    });
+  
+    this.drawResults = drawnNumbers;
+    try {
+      const response = await fetch(`http://localhost:5000/drawnNumbers`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          luckyNumbers: lotteryNumbers
+        })
+      });
 
-    const randomIndex = Math.floor(Math.random() * allLuckyNumbers.length);
-    const selectedLuckyNumber = allLuckyNumbers[randomIndex];
+      if (!response.ok) {
+        throw new Error('Erro ao atualizar os números sorteados no servidor.');
+      }
 
-    this.winner = selectedLuckyNumber.user;
-    this.winnerNumber = selectedLuckyNumber.number;
+      const updatedUser = await response.json();
+      console.log(`Usuário ${updatedUser.name} atualizado com sucesso!`);
+    } catch (error) {
+      console.error('Erro ao atualizar o usuário no servidor:', error);
+    }
 
-    console.log(`Vencedor: ${this.winner.name}, Número da Sorte: ${this.winnerNumber}`);
   }
 
   ngOnInit(): void {

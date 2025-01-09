@@ -3,6 +3,23 @@ import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
+interface LuckyNumber {
+  number: number;
+  month: string;
+  isDrawn?: boolean;
+}
+
+interface User {
+  id: number;
+  name: string;
+  luckyNumbers: LuckyNumber[];
+}
+
+interface DrawnNumber {
+  number: number;
+  luckyNumbers: number[];
+}
+
 @Component({
   selector: 'app-numbers',
   standalone: true,
@@ -13,26 +30,40 @@ import { FormsModule } from '@angular/forms';
 
 export class NumbersComponent {
   id: string = '';
-  userNumbers: { number: number; month: string }[] = [];
+  userNumbers: LuckyNumber[] = [];
   errorMessage: string = '';
   successMessage: string = '';
+  drawnNumbers: number[] = [];
 
   constructor(private http: HttpClient) {}
 
   getUserNumbers() {
     this.errorMessage = '';
     this.successMessage = '';
-
+  
     if (!this.id.trim()) {
       this.errorMessage = 'Por favor, digite um ID válido.';
       return;
     }
-
-    this.http.get<any[]>(`http://localhost:5000/users`).subscribe({
-      next: users => {
+  
+    this.http.get<User[]>(`http://localhost:5000/users`).subscribe({
+      next: (users) => {
         const user = users.find(u => u.id == Number(this.id));
+  
         if (user && user.luckyNumbers && user.luckyNumbers.length > 0) {
-          this.userNumbers = user.luckyNumbers;
+          this.http.get<DrawnNumber[]>(`http://localhost:5000/drawnNumbers`).subscribe({
+            next: (drawnNumbers) => {
+              this.drawnNumbers = drawnNumbers.flatMap(d => d.luckyNumbers);
+              this.userNumbers = user.luckyNumbers.map(lucky => ({
+                ...lucky,
+                isDrawn: this.drawnNumbers.includes(lucky.number)
+              }));
+            },
+            error: (error) => {
+              console.error('Erro ao buscar números sorteados:', error);
+              this.errorMessage = 'Erro ao verificar números sorteados. Tente novamente mais tarde.';
+            }
+          });
         } else {
           this.userNumbers = [];
           this.errorMessage = 'Você ainda não tem números da sorte registrados.';
@@ -45,35 +76,4 @@ export class NumbersComponent {
       }
     });
   }
-
-  /*updateUserLuckyNumber() {
-    this.successMessage = '';
-
-    if (!this.id.trim()) {
-      this.errorMessage = 'Por favor, forneça um ID de usuário válido.';
-      return;
-    }
-
-    this.http.get<any[]>(`http://localhost:5000/users`).subscribe(users => {
-      const user = users.find(u => u.id === Number(this.id));
-      if (user) {
-        // Caso o usuário exista, atualiza os números
-        user.luckyNumbers = this.userNumbers;  // Atualiza o array de números da sorte
-
-        // Faz a requisição PUT para atualizar os números da sorte do usuário
-        this.http.put(`http://localhost:5000/users/${user.id}`, user).subscribe({
-          next: () => {
-            this.successMessage = 'Os números da sorte foram atualizados com sucesso!';
-            this.errorMessage = '';
-          },
-          error: (err) => {
-            console.error('Erro ao atualizar números da sorte:', err);
-            this.errorMessage = 'Ocorreu um erro ao atualizar os números. Tente novamente mais tarde.';
-          }
-        });
-      } else {
-        this.errorMessage = 'Usuário não encontrado.';
-      }
-    });
-  }*/
 }

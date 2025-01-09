@@ -1,62 +1,6 @@
 {
   "users": [
-    {
-      "id": "10001",
-      "name": "Ana Souza",
-      "luckyNumbers": [
-        {
-          "number": 8791,
-          "month": "Janeiro"
-        },
-        {
-          "number": 6421,
-          "month": "Fevereiro"
-        },
-        {
-          "number": 3808,
-          "month": "Março"
-        },
-        {
-          "number": 5826,
-          "month": "Abril"
-        }
-      ]
-    },
-    {
-      "id": "10002",
-      "name": "João Pereira",
-      "luckyNumbers": [
-        {
-          "number": 7415,
-          "month": "Janeiro"
-        },
-        {
-          "number": 6911,
-          "month": "Fevereiro"
-        },
-        {
-          "number": 7289,
-          "month": "Março"
-        },
-        {
-          "number": 7602,
-          "month": "Abril"
-        }
-      ]
-    },
-    {
-      "id": "10003",
-      "name": "Paty",
-      "luckyNumbers": [
-        {
-          "number": 3354,
-          "month": "Janeiro"
-        },
-        {
-          "number": 7280,
-          "month": "Abril"
-        }
-      ]
-    }
+  ],
+  "drawnNumbers": [
   ]
 }

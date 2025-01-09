@@ -2,7 +2,6 @@
   <h2 class="text-3xl font-bold text-center text-gray-800 mb-8">Buscar Números da Sorte</h2>
 
   <div class="space-y-6">
-    <!-- Input de ID do Usuário -->
     <div>
       <label for="userId" class="block text-lg font-medium text-gray-700">ID do Usuário</label>
       <input 
@@ -14,7 +13,6 @@
       />
     </div>
 
-    <!-- Botão de Buscar -->
     <div class="text-center">
       <button 
         type="submit" 
@@ -24,7 +22,6 @@
       </button>
     </div>
 
-    <!-- Mensagens de Erro e Sucesso -->
     <div *ngIf="errorMessage" class="alert alert-danger text-red-600 p-4 border border-red-200 rounded-md bg-red-50">
       {{ errorMessage }}
     </div>
@@ -33,7 +30,6 @@
       {{ successMessage }}
     </div>
 
-    <!-- Lista de Números da Sorte -->
     <div *ngIf="userNumbers.length > 0">
       <h3 class="text-2xl font-semibold text-gray-800 mt-6 mb-4">Meus Números da Sorte:</h3>
       <ul class="space-y-4">
@@ -47,17 +43,13 @@
               [(ngModel)]="userNumbers[i].number" 
               readonly
             />
+            <span *ngIf="item.isDrawn" class="ml-4 text-sm bg-green-800 text-white font-bold rounded-full p-2">Sorteado</span>
+            <span *ngIf="!item.isDrawn" class="ml-4 text-sm bg-red-800 text-white font-bold rounded-full p-2">Não Sorteado</span>
           </div>
         </li>
       </ul>
-
-      <!-- Botão de Atualização -->
-      <!-- <div class="text-center mt-4">
-        <button class="px-6 py-3 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 transition duration-200" (click)="updateUserLuckyNumber()">Atualizar</button>
-      </div> -->
     </div>
 
-    <!-- Mensagem de Aviso quando não houver números -->
     <div *ngIf="userNumbers.length === 0" class="alert alert-warning text-yellow-600 p-4 border border-yellow-200 rounded-md bg-yellow-50">
       Nenhum número da sorte encontrado para este usuário.
     </div>
