@@ -45,7 +45,7 @@
     <h4 class="text-xl font-semibold">Números Sorteados e Usuários Correspondentes:</h4>
     <ul class="list-disc pl-5 mt-2">
       <li *ngFor="let result of drawResults">
-        Número: {{ result.number }} - Posição: {{ result.position }} - Usuário: {{ result.user?.name || 'Nenhum usuário'
+        Número sorteado: {{ result.number }} - Posição: {{ result.position }} - Usuário: {{ result.user?.id || ''}} - {{ result.user?.name || 'Nenhum usuário'
         }}
       </li>
     </ul>
