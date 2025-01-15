@@ -48,7 +48,7 @@ export class AdminComponent implements OnInit {
     }
   }
   downloadDatabaseBackup() {
-    this.http.get<any[]>(`http://localhost:5000/users`).subscribe({
+    this.http.get<any[]>(`http://192.168.169.130:5000/users`).subscribe({
       next: (users) => {
         const data = JSON.stringify(users, null, 2);
 
@@ -63,7 +63,7 @@ export class AdminComponent implements OnInit {
   }
 
   downloadDatabaseBackupAsExcel() {
-    this.http.get<any[]>(`http://localhost:5000/users`).subscribe({
+    this.http.get<any[]>(`http://192.168.169.130:5000/users`).subscribe({
       next: (users) => {
         const ws = XLSX.utils.json_to_sheet(users);
         const wb = XLSX.utils.book_new();
@@ -82,14 +82,14 @@ export class AdminComponent implements OnInit {
       let { id, name, month: currentMonth } = user;
 
       try {
-        const existingUsers = await this.http.get<User[]>(`http://localhost:5000/users`).toPromise();
+        const existingUsers = await this.http.get<User[]>(`http://192.168.169.130:5000/users`).toPromise();
         const existingUser = existingUsers?.find(u => u.id == id);
 
         if (existingUser) {
           await this.addLuckyNumberToUser(existingUser, currentMonth);
         } else {
           const uniqueLuckyNumber = await this.generateUniqueLuckyNumber();
-          await this.http.post(`http://localhost:5000/users`, {
+          await this.http.post(`http://192.168.169.130:5000/users`, {
             id,
             name,
             luckyNumbers: [{ number: uniqueLuckyNumber, month: currentMonth }]
@@ -109,7 +109,7 @@ export class AdminComponent implements OnInit {
       if (!existingLuckyNumber) {
         let luckyNumber = await this.generateUniqueLuckyNumber();
 
-        const existingLuckyNumbers = await this.http.get<User[]>(`http://localhost:5000/users`).toPromise();
+        const existingLuckyNumbers = await this.http.get<User[]>(`http://192.168.169.130:5000/users`).toPromise();
         const existingNumbers = existingLuckyNumbers?.flatMap(u => u.luckyNumbers.map((ln: LuckyNumber) => ln.number));
 
         while (existingNumbers?.includes(luckyNumber)) {
@@ -120,7 +120,7 @@ export class AdminComponent implements OnInit {
         if (userIndex !== -1) {
           this.users[userIndex].luckyNumbers.push({ number: luckyNumber, month: currentMonth });
 
-          const response = await fetch(`http://localhost:5000/users/${user.id}`, {
+          const response = await fetch(`http://192.168.169.130:5000/users/${user.id}`, {
             method: 'PATCH',
             headers: {
               'Content-Type': 'application/json'
@@ -151,7 +151,7 @@ export class AdminComponent implements OnInit {
     let luckyNumber = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
 
     try {
-      const existingUsers = await this.http.get<User[]>(`http://localhost:5000/users`).toPromise();
+      const existingUsers = await this.http.get<User[]>(`http://192.168.169.130:5000/users`).toPromise();
       const existingLuckyNumbers = existingUsers?.flatMap(user => user.luckyNumbers.map((ln: LuckyNumber) => ln.number));
 
       while (existingLuckyNumbers?.includes(luckyNumber)) {
@@ -165,7 +165,7 @@ export class AdminComponent implements OnInit {
   }
 
   assignLuckyNumbers() {
-    this.http.get<User[]>(`http://localhost:5000/users`).subscribe({
+    this.http.get<User[]>(`http://192.168.169.130:5000/users`).subscribe({
       next: (users) => {
         this.users = users;
       },
@@ -201,7 +201,7 @@ export class AdminComponent implements OnInit {
   
     this.drawResults = drawnNumbers;
     try {
-      const response = await fetch(`http://localhost:5000/drawnNumbers`, {
+      const response = await fetch(`http://192.168.169.130:5000/drawnNumbers`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
