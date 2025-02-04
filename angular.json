@@ -55,8 +55,7 @@
               "src/styles.css"
             ],
             "scripts": [
-              "node_modules/xlsx/dist/xlsx.full.min.js",
-              "node_modules/file-saver/src/FileSaver.min.js"]
+              "node_modules/xlsx/dist/xlsx.full.min.js"]
           },
           "configurations": {
             "production": {
