@@ -4,11 +4,11 @@
   <div class="backup-container flex flex-col flex-wrap items-start gap-2">
     <h2>Backup do Banco de Dados</h2>
     
-    <button (click)="downloadDatabaseBackup()" class="btn btn-primary bg-gray-500 rounded-full p-2">
+    <button (click)="downloadJSON()" class="btn btn-primary bg-gray-500 rounded-full p-2">
       Baixar Backup (JSON)
     </button>
     
-    <button (click)="downloadDatabaseBackupAsExcel()" class="btn btn-success bg-green-500 rounded-full p-2">
+    <button (click)="downloadExcel()" class="btn btn-success bg-green-500 rounded-full p-2">
       Baixar Backup (Excel)
     </button>
   </div>
@@ -20,7 +20,7 @@
     <br />
     <button
       class="ml-2 px-6 py-3 bg-yellow-500 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-600 transition duration-200"
-      (click)="addUsersToDb(this.json)">
+      (click)="addUsersToDb(json)">
       Atribuir Números
     </button>
   </div>
@@ -45,8 +45,7 @@
     <h4 class="text-xl font-semibold">Números Sorteados e Usuários Correspondentes:</h4>
     <ul class="list-disc pl-5 mt-2">
       <li *ngFor="let result of drawResults">
-        Número sorteado: {{ result.number }} - Posição: {{ result.position }} - Usuário: {{ result.user?.id || ''}} - {{ result.user?.name || 'Nenhum usuário'
-        }}
+        Número sorteado: {{ result.number }} - Posição: {{ result.position }} - Usuário: {{ result.user?.id || '' }} - {{ result.user?.name || 'Nenhum usuário' }}
       </li>
     </ul>
   </div>
