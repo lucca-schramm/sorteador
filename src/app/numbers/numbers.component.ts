@@ -46,12 +46,12 @@ export class NumbersComponent {
       return;
     }
   
-    this.http.get<User[]>(`http://localhost:5000/users`).subscribe({
+    this.http.get<User[]>(`http://192.168.97.16:5000/users`).subscribe({
       next: (users) => {
         const user = users.find(u => u.id == Number(this.id));
   
         if (user && user.luckyNumbers && user.luckyNumbers.length > 0) {
-          this.http.get<DrawnNumber[]>(`http://localhost:5000/drawnNumbers`).subscribe({
+          this.http.get<DrawnNumber[]>(`http://192.168.97.16:5000/drawnNumbers`).subscribe({
             next: (drawnNumbers) => {
               this.drawnNumbers = drawnNumbers.flatMap(d => d.luckyNumbers);
               this.userNumbers = user.luckyNumbers.map(lucky => ({
