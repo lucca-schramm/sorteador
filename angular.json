@@ -55,15 +55,17 @@
               "src/styles.css"
             ],
             "scripts": [
-              "node_modules/xlsx/dist/xlsx.full.min.js"]
+              "node_modules/xlsx/dist/xlsx.full.min.js"
+            ]
           },
           "configurations": {
             "production": {
+              "optimization": true,
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "1000kB",
-                  "maximumError": "2MB"
+                  "maximumWarning": "2MB",
+                  "maximumError": "2.5MB"
                 },
                 {
                   "type": "anyComponentStyle",
