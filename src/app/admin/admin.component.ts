@@ -28,7 +28,11 @@ export class AdminComponent implements OnInit {
   users: User[] = [];
   json: any[] = [];
   lotteryNumbersInput: string = '';
+  lotteryNumbers: string[] = [];
   drawResults: { number: string, position: number, user: User | null }[] = [];
+  drawnNumbersRecords: { luckynumbers: string[], ref_sorteio: string }[] = [];
+  errorMessage: string = '';
+  successMessage: string = '';
 
   constructor() {}
 
@@ -54,9 +58,13 @@ export class AdminComponent implements OnInit {
         offset += limit;
       }
       this.users = allUsers;
-      console.log('Todos usuários carregados:', this.users);
+      console.log('Todos os usuários carregados:', this.users);
+      this.successMessage = 'Usuários carregados com sucesso!';
     } catch (error) {
       console.error('Erro ao buscar usuários:', error);
+      this.errorMessage = 'Erro ao carregar os usuários. Tente novamente mais tarde.';
+    } finally {
+      this.showMessages();
     }
   }
 
@@ -67,12 +75,10 @@ export class AdminComponent implements OnInit {
    */
   async addUsersToDb(users: User[]) {
     try {
-      // Define o tamanho do chunk
       const chunkSize = 1000;
       const userIds = users.map(u => u.id);
       const existingUserIds = new Set<number>();
 
-      // Verifica os usuários já existentes em lotes
       for (let i = 0; i < userIds.length; i += chunkSize) {
         const chunk = userIds.slice(i, i + chunkSize);
         const { data: existingUsersChunk, error: fetchError } = await supabase
@@ -83,7 +89,6 @@ export class AdminComponent implements OnInit {
         existingUsersChunk.forEach((u: any) => existingUserIds.add(u.id));
       }
 
-      // Filtra os usuários que ainda não existem
       const newUsers = users
         .filter(u => !existingUserIds.has(u.id))
         .map(u => ({ id: u.id, name: u.name }));
@@ -96,7 +101,6 @@ export class AdminComponent implements OnInit {
         newUsers.forEach(u => console.log(`Usuário ${u.name} adicionado!`));
       }
 
-      // Agrupa os usuários por mês (utilizando o campo "month" ou o mês atual)
       const usersByMonth = new Map<string, User[]>();
       for (const user of users) {
         const month = user.month || new Date().toISOString().slice(0, 7);
@@ -106,9 +110,7 @@ export class AdminComponent implements OnInit {
         usersByMonth.get(month)?.push(user);
       }
 
-      // Para cada grupo mensal, realiza a inserção em lote dos números da sorte
       for (const [month, usersGroup] of usersByMonth) {
-        // Recupera os usuários que já possuem um número da sorte para o mês
         const userIdsGroup = usersGroup.map(u => u.id);
         const luckyUserIds = new Set<number>();
         for (let i = 0; i < userIdsGroup.length; i += chunkSize) {
@@ -122,7 +124,6 @@ export class AdminComponent implements OnInit {
           existingLuckyNumbers.forEach((l: any) => luckyUserIds.add(l.user_id));
         }
 
-        // Recupera todos os números já atribuídos para o mês (para evitar duplicidade)
         const { data: existingNumbersData, error: numbersError } = await supabase
           .from('luckyNumbers')
           .select('number')
@@ -131,7 +132,7 @@ export class AdminComponent implements OnInit {
         const existingNumbers = new Set(existingNumbersData.map((n: any) => n.number));
 
         const newLuckyRecords: { user_id: number, number: string, month: string }[] = [];
-        const generatedNumbers = new Set<string>(); // para rastrear os números gerados nesta operação
+        const generatedNumbers = new Set<string>();
 
         for (const user of usersGroup) {
           if (luckyUserIds.has(user.id)) {
@@ -139,7 +140,6 @@ export class AdminComponent implements OnInit {
             continue;
           }
           let uniqueLuckyNumber: string;
-          // Gera um número único evitando conflito com os existentes e com os gerados no lote
           do {
             uniqueLuckyNumber = this.random4DigitNumber();
           } while (existingNumbers.has(uniqueLuckyNumber) || generatedNumbers.has(uniqueLuckyNumber));
@@ -148,7 +148,6 @@ export class AdminComponent implements OnInit {
           newLuckyRecords.push({ user_id: user.id, number: uniqueLuckyNumber, month });
         }
 
-        // Insere todos os números da sorte gerados para o grupo em uma única operação
         if (newLuckyRecords.length > 0) {
           const { error: insertLuckyError } = await supabase
             .from('luckyNumbers')
@@ -159,18 +158,34 @@ export class AdminComponent implements OnInit {
           );
         }
       }
+      this.successMessage = 'Dados importados e números atribuídos com sucesso!';
     } catch (err) {
       console.error('Erro ao adicionar usuário ou atribuir número da sorte:', err);
+      this.errorMessage = 'Erro ao importar os dados. Tente novamente mais tarde.';
+    } finally {
+      this.showMessages();
     }
   }
 
-  /**
-   * Gera um número aleatório de 4 dígitos (com zeros à esquerda, se necessário).
-   */
+showMessages() {
+    if (this.successMessage) {
+      alert(this.successMessage);
+      this.successMessage = '';
+    }
+    if (this.errorMessage) {
+      alert(this.errorMessage);
+      this.errorMessage = '';
+    }
+  }
+
   random4DigitNumber(): string {
     return Math.floor(Math.random() * 10000).toString().padStart(4, '0');
   }
 
+  getDrawnNumbers(): { luckynumbers: string[], ref_sorteio: string }[] {
+    return this.drawnNumbersRecords;
+  }
+  
   onFileSelected(event: any): void {
     const file = event.target.files[0];
     if (file) {
@@ -180,7 +195,6 @@ export class AdminComponent implements OnInit {
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
-        // Converte a planilha para um array onde a primeira linha é o cabeçalho.
         const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
         if (!jsonData.length) {
           alert('O arquivo Excel está vazio.');
@@ -205,41 +219,64 @@ export class AdminComponent implements OnInit {
         }
         this.json = users;
         console.log('Dados extraídos do Excel:', this.json);
+        alert('Dados importados com sucesso!');
       };
       reader.readAsArrayBuffer(file);
     }
   }
 
+  /**
+   * Insere os números sorteados no banco, adicionando também a referência do sorteio (mês).
+   */
   async insertLotteryNumbers() {
     const lotteryNumbers = this.lotteryNumbersInput
       .split(',')
       .map(num => num.trim())
       .filter(num => num !== '');
-
+  
     if (lotteryNumbers.length !== 10) {
       alert('Por favor, insira exatamente 10 números sorteados!');
       return;
     }
-
+  
     try {
+      const refSorteio = this.getCurrentMonthName();
       const { error } = await supabase
         .from('drawnNumbers')
-        .insert([{ luckynumbers: lotteryNumbers }]);
-
+        .insert([{ luckynumbers: lotteryNumbers, ref_sorteio: refSorteio }]);
+  
       if (error) throw error;
-      console.log('Números sorteados salvos com sucesso!');
+  
+      this.successMessage = 'Números sorteados salvos com sucesso!';
+      this.lotteryNumbersInput = ''; // Limpar input após inserção
+      this.fetchDrawnNumbers(); // Atualizar a lista de números sorteados
     } catch (error) {
       console.error('Erro ao salvar números sorteados:', error);
+      this.errorMessage = 'Erro ao salvar os números sorteados. Tente novamente mais tarde.';
+    } finally {
+      this.showMessages();
     }
   }
 
-  downloadJSON() {
-    const jsonData = JSON.stringify(this.users, null, 2);
-    const blob = new Blob([jsonData], { type: 'application/json' });
-    saveAs(blob, 'usuarios_numeros.json');
+  /**
+   * Retorna o nome do mês corrente em português.
+   */
+  getCurrentMonthName(): string {
+    const months = [
+      'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+      'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+    ];
+    return months[new Date().getMonth()];
   }
 
-  downloadExcel() {
+  async downloadJSON() {
+    const jsonData = JSON.stringify(this.users, null, 2);
+    const blob = new Blob([jsonData], { type: 'application/json' });
+    await saveAs(blob, 'usuarios_numeros.json');
+    alert('Backup (JSON) exportado com sucesso!');
+  }
+
+  async downloadExcel() {
     const ws = XLSX.utils.json_to_sheet(
       this.users.flatMap(user =>
         user.luckyNumbers?.map(ln => ({
@@ -258,7 +295,8 @@ export class AdminComponent implements OnInit {
       [excelBuffer],
       { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }
     );
-    saveAs(blob, 'usuarios_numeros.xlsx');
+    await saveAs(blob, 'usuarios_numeros.xlsx');
+    alert('Backup (Excel) exportado com sucesso!');
   }
 
   refreshPage(): void {
@@ -266,17 +304,30 @@ export class AdminComponent implements OnInit {
   }
 
   refreshData(): void {
-    // Recarrega os usuários e outras informações conforme necessário.
     this.fetchAllUsersWithNumbers();
-    // Caso haja outras funções de atualização, invocá-las aqui.
-    console.log('Dados atualizados!');
+    this.fetchDrawnNumbers();
   }
-  
-  
+
+  /**
+   * Busca os registros de números sorteados, exibindo os números e o mês em que foram sorteados.
+   */
+  async fetchDrawnNumbers() {
+    try {
+      const { data, error } = await supabase
+        .from('drawnNumbers')
+        .select('luckynumbers, ref_sorteio');
+        if (error) throw error;
+        this.drawnNumbersRecords = [...(data || [])];
+      console.log('Números sorteados carregados:', this.drawnNumbersRecords);
+    } catch (error) {
+      await console.error('Erro ao buscar números sorteados:', error);
+      alert('Erro ao carregar os números sorteados.');
+    }
+  }
 
   ngOnInit(): void {
-    // Utilize a nova função para buscar todos os usuários em lotes
     this.fetchAllUsersWithNumbers();
+    this.fetchDrawnNumbers();
   }
 
   /**
@@ -285,7 +336,6 @@ export class AdminComponent implements OnInit {
    */
   async assignLuckyNumbersForMonth(month: string) {
     try {
-      // Busca todos os usuários
       const { data: users, error: usersError } = await supabase
         .from('users')
         .select('id, name');
@@ -295,7 +345,6 @@ export class AdminComponent implements OnInit {
       const userIds = users.map(u => u.id);
       const luckyUserIds = new Set<number>();
 
-      // Verifica quais usuários já possuem um número da sorte para o mês informado
       for (let i = 0; i < userIds.length; i += chunkSize) {
         const chunk = userIds.slice(i, i + chunkSize);
         const { data: existingLuckyNumbers, error: checkError } = await supabase
@@ -307,7 +356,6 @@ export class AdminComponent implements OnInit {
         existingLuckyNumbers.forEach((l: any) => luckyUserIds.add(l.user_id));
       }
 
-      // Recupera os números existentes para o mês para evitar duplicidade
       const { data: existingNumbersData, error: numbersError } = await supabase
         .from('luckyNumbers')
         .select('number')
@@ -340,8 +388,12 @@ export class AdminComponent implements OnInit {
           console.log(`Número ${record.number} atribuído ao usuário ${record.user_id} para o mês ${record.month}.`)
         );
       }
+      this.successMessage = 'Números da sorte atribuídos com sucesso!';
     } catch (error) {
       console.error('Erro ao atribuir números da sorte:', error);
+      this.errorMessage = 'Erro ao atribuir os números da sorte. Tente novamente mais tarde.';
+    } finally {
+      this.showMessages()
     }
   }
 }
