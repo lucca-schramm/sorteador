@@ -52,7 +52,7 @@ export class AdminComponent implements OnInit {
         }
   
         // Usa o mês do arquivo ou o mês atual
-        const month = user.referenceMonth || new Date().toISOString().slice(0, 7);
+        const month = user.month || new Date().toISOString().slice(0, 7);
         
         // Verifica se o usuário já possui um número da sorte para o mês
         const { data: existingLuckyNumber, error: checkError } = await supabase
@@ -110,8 +110,8 @@ export class AdminComponent implements OnInit {
               user.id = row[j];
             } else if (header === 'nome') {
               user.name = row[j];
-            } else if (header.includes('mês')) {
-              user.referenceMonth = row[j];
+            } else if (header.includes('month')) {
+              user.month = row[j];
             }
           }
           users.push(user);
@@ -226,18 +226,33 @@ export class AdminComponent implements OnInit {
       const { data: users, error: usersError } = await supabase
         .from('users')
         .select('id, name');
-
+  
       if (usersError) throw usersError;
-
+  
       for (const user of users) {
+        // Verifica se o usuário já possui um número da sorte para o mês
+        const { data: existingLuckyNumber, error: checkError } = await supabase
+          .from('luckyNumbers')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('month', month)
+          .limit(1);
+        
+        if (checkError) throw checkError;
+        
+        if (existingLuckyNumber.length > 0) {
+          console.log(`Usuário ${user.name} já possui um número da sorte para o mês ${month}.`);
+          continue; // Pula para o próximo usuário
+        }
+  
         const uniqueLuckyNumber = await this.generateUniqueLuckyNumber();
-
+  
         const { error: insertError } = await supabase
           .from('luckyNumbers')
           .insert([{ user_id: user.id, number: uniqueLuckyNumber, month }]);
-
+        
         if (insertError) throw insertError;
-        console.log(`Número ${uniqueLuckyNumber} atribuído ao usuário ${user.name}.`);
+        console.log(`Número ${uniqueLuckyNumber} atribuído ao usuário ${user.name} para o mês ${month}.`);
       }
     } catch (error) {
       console.error('Erro ao atribuir números da sorte:', error);
