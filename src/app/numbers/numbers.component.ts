@@ -32,8 +32,11 @@ export class NumbersComponent {
   constructor() {}
 
   async getUserNumbers() {
+    // Limpa mensagens e dados anteriores.
     this.errorMessage = '';
     this.successMessage = '';
+    this.userNumbers = [];
+    this.drawnNumbers = [];
 
     if (!this.id.trim()) {
       this.errorMessage = 'Por favor, digite um ID válido.';
@@ -41,43 +44,55 @@ export class NumbersComponent {
     }
 
     try {
-      const { data: users, error: userError } = await supabase
+      const userId = Number(this.id);
+
+      // Busca o usuário com o ID informado.
+      const { data: user, error: userError } = await supabase
         .from('users')
         .select('*')
-        .eq('id', Number(this.id));
+        .eq('id', userId)
+        .single();
 
-      if (userError) throw userError;
-
-      const user = users?.[0] as User;
-
-      if (user) {
-        const { data: luckyNumbers, error: luckyError } = await supabase
-          .from('luckyNumbers')
-          .select('*')
-          .eq('user_id', user.id);
-
-        if (luckyError) throw luckyError;
-
-        user.luckyNumbers = luckyNumbers;
-
-        const { data: drawnNumbers, error: drawnError } = await supabase
-          .from('drawnNumbers')
-          .select('*');
-
-        if (drawnError) throw drawnError;
-
-        this.drawnNumbers = drawnNumbers.flatMap(d => d.luckyNumbers);
-
-        this.userNumbers = user.luckyNumbers.map(lucky => ({
-          ...lucky,
-          isDrawn: this.drawnNumbers.includes(lucky.number)
-        }));
-
-        this.successMessage = 'Seus números foram carregados!';
-      } else {
-        this.userNumbers = [];
-        this.errorMessage = 'Você ainda não tem números da sorte registrados.';
+      if (userError) {
+        throw userError;
       }
+
+      if (!user) {
+        this.errorMessage = 'Usuário não encontrado.';
+        return;
+      }
+
+      // Busca os números da sorte do usuário.
+      const { data: luckyNumbersData, error: luckyError } = await supabase
+        .from('luckyNumbers')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (luckyError) {
+        throw luckyError;
+      }
+
+      const userLuckyNumbers: LuckyNumber[] = luckyNumbersData || [];
+
+      // Busca os números sorteados, selecionando a coluna 'luckynumbers'
+      const { data: drawnData, error: drawnError } = await supabase
+        .from('drawnNumbers')
+        .select('luckynumbers');
+
+      if (drawnError) {
+        throw drawnError;
+      }
+
+      // Mapeia os números sorteados utilizando a chave correta 'luckynumbers'
+      this.drawnNumbers = (drawnData || []).flatMap((row: any) => row.luckynumbers || []);
+
+      // Mapeia os números do usuário definindo a flag 'isDrawn' se o número estiver entre os sorteados.
+      this.userNumbers = userLuckyNumbers.map(lucky => ({
+        ...lucky,
+        isDrawn: this.drawnNumbers.includes(lucky.number)
+      }));
+
+      this.successMessage = 'Seus números foram carregados!';
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
       this.errorMessage = 'Erro ao buscar os números. Tente novamente mais tarde.';

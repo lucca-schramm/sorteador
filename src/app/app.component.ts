@@ -16,6 +16,10 @@ export class AppComponent {
   navigateToLogin() {
     this.router.navigate(['/login']);
   }
+
+  navigateToHome() {
+    this.router.navigate(['/']);
+  }
   /*logout(): void {
     localStorage.removeItem('user');
     this.router.navigate(['/']); 

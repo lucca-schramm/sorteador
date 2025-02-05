@@ -224,7 +224,7 @@ export class AdminComponent implements OnInit {
     try {
       const { error } = await supabase
         .from('drawnNumbers')
-        .insert([{ luckyNumbers: lotteryNumbers }]);
+        .insert([{ luckynumbers: lotteryNumbers }]);
 
       if (error) throw error;
       console.log('Números sorteados salvos com sucesso!');
@@ -260,6 +260,19 @@ export class AdminComponent implements OnInit {
     );
     saveAs(blob, 'usuarios_numeros.xlsx');
   }
+
+  refreshPage(): void {
+    window.location.reload();
+  }
+
+  refreshData(): void {
+    // Recarrega os usuários e outras informações conforme necessário.
+    this.fetchAllUsersWithNumbers();
+    // Caso haja outras funções de atualização, invocá-las aqui.
+    console.log('Dados atualizados!');
+  }
+  
+  
 
   ngOnInit(): void {
     // Utilize a nova função para buscar todos os usuários em lotes

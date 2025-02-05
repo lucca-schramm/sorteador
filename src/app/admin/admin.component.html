@@ -1,16 +1,33 @@
 <div class="max-w-4xl mx-auto p-8 bg-white shadow-lg rounded-lg mt-10">
   <h2 class="text-3xl font-semibold text-center text-gray-800 mb-6">Administração</h2>
-
-  <div class="backup-container flex flex-col flex-wrap items-start gap-2">
-    <h2>Backup do Banco de Dados</h2>
-    
-    <button (click)="downloadJSON()" class="btn btn-primary bg-gray-500 rounded-full p-2">
-      Baixar Backup (JSON)
-    </button>
-    
-    <button (click)="downloadExcel()" class="btn btn-success bg-green-500 rounded-full p-2">
-      Baixar Backup (Excel)
-    </button>
+  <div class="flex flex-row justify-between items-center">
+    <div class="backup-container flex flex-col flex-wrap items-center gap-2 ml-6">
+      <div class="text-center mt-6">
+        <button
+          class="btn btn-primary bg-gray-500 rounded-full p-2"
+          (click)="refreshPage()">
+          Atualizar Página
+        </button>
+      </div>
+      <div class="text-center mt-6">
+        <button
+          class="btn btn-success bg-green-500 rounded-full p-2"
+          (click)="refreshData()">
+          Atualizar Dados
+        </button>
+      </div>
+    </div>
+    <div class="backup-container flex flex-col flex-wrap items-center gap-2 mr-6">
+      <h2>Backup do Banco de Dados</h2>
+      
+      <button (click)="downloadJSON()" class="btn btn-primary bg-gray-500 rounded-full p-2">
+        Baixar Backup (JSON)
+      </button>
+      
+      <button (click)="downloadExcel()" class="btn btn-success bg-green-500 rounded-full p-2">
+        Baixar Backup (Excel)
+      </button>
+    </div>
   </div>
   
 
@@ -21,7 +38,7 @@
     <button
       class="ml-2 px-6 py-3 bg-yellow-500 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-600 transition duration-200"
       (click)="addUsersToDb(json)">
-      Atribuir Números
+      Carregar Dados
     </button>
   </div>
 
@@ -37,7 +54,7 @@
     <button
       class="px-6 py-3 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 transition duration-200"
       (click)="insertLotteryNumbers()">
-      Buscar Números Sorteados
+      Atribuir Números Sorteados
     </button>
   </div>
 
