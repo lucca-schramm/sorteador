@@ -13,7 +13,7 @@ interface LuckyNumber {
 interface User {
   id: number;
   name: string;
-  email: string;
+  month?: string;
   luckyNumbers?: LuckyNumber[];
 }
 
@@ -32,57 +32,144 @@ export class AdminComponent implements OnInit {
 
   constructor() {}
 
-  async addUsersToDb(users: any[]) {
-    for (const user of users) {
-      try {
-        // Verifica se o usuário já existe
-        const { data: existingUsers, error: fetchError } = await supabase
+  /**
+   * Busca todos os usuários com seus números da sorte em lotes,
+   * contornando o limite de 1000 registros por consulta.
+   */
+  async fetchAllUsersWithNumbers() {
+    try {
+      let offset = 0;
+      const limit = 1000;
+      let allUsers: User[] = [];
+
+      while (true) {
+        const { data, error } = await supabase
           .from('users')
-          .select('id')
-          .eq('id', user.id);
-  
-        if (fetchError) throw fetchError;
-  
-        if (!existingUsers.length) {
-          const { error: insertError } = await supabase
-            .from('users')
-            .insert([{ id: user.id, name: user.name, email: '' }]);
-          if (insertError) throw insertError;
-          console.log(`Usuário ${user.name} adicionado!`);
-        }
-  
-        // Usa o mês do arquivo ou o mês atual
-        const month = user.month || new Date().toISOString().slice(0, 7);
-        
-        // Verifica se o usuário já possui um número da sorte para o mês
-        const { data: existingLuckyNumber, error: checkError } = await supabase
-          .from('luckyNumbers')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('month', month)
-          .limit(1);
-  
-        if (checkError) throw checkError;
-  
-        if (existingLuckyNumber.length > 0) {
-          console.log(`Usuário ${user.name} já possui um número da sorte para o mês ${month}.`);
-          continue; // Pula para o próximo usuário
-        }
-  
-        const uniqueLuckyNumber = await this.generateUniqueLuckyNumber();
-  
-        const { error: insertLuckyError } = await supabase
-          .from('luckyNumbers')
-          .insert([{ user_id: user.id, number: uniqueLuckyNumber, month }]);
-        
-        if (insertLuckyError) throw insertLuckyError;
-        console.log(`Número ${uniqueLuckyNumber} atribuído ao usuário ${user.name} para o mês ${month}.`);
-      } catch (err) {
-        console.error('Erro ao adicionar usuário ou atribuir número da sorte:', err);
+          .select('id, name, luckyNumbers: luckyNumbers(number, month)')
+          .range(offset, offset + limit - 1);
+
+        if (error) throw error;
+        allUsers.push(...data);
+        if (data.length < limit) break;
+        offset += limit;
       }
+      this.users = allUsers;
+      console.log('Todos usuários carregados:', this.users);
+    } catch (error) {
+      console.error('Erro ao buscar usuários:', error);
     }
   }
-  
+
+  /**
+   * Adiciona usuários ao banco e atribui números da sorte.
+   * Utiliza chunking para contornar o limite de 1000 linhas do Supabase
+   * e realiza inserção em lote dos números da sorte, otimizando as operações.
+   */
+  async addUsersToDb(users: User[]) {
+    try {
+      // Define o tamanho do chunk
+      const chunkSize = 1000;
+      const userIds = users.map(u => u.id);
+      const existingUserIds = new Set<number>();
+
+      // Verifica os usuários já existentes em lotes
+      for (let i = 0; i < userIds.length; i += chunkSize) {
+        const chunk = userIds.slice(i, i + chunkSize);
+        const { data: existingUsersChunk, error: fetchError } = await supabase
+          .from('users')
+          .select('id')
+          .in('id', chunk);
+        if (fetchError) throw fetchError;
+        existingUsersChunk.forEach((u: any) => existingUserIds.add(u.id));
+      }
+
+      // Filtra os usuários que ainda não existem
+      const newUsers = users
+        .filter(u => !existingUserIds.has(u.id))
+        .map(u => ({ id: u.id, name: u.name }));
+
+      if (newUsers.length > 0) {
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert(newUsers);
+        if (insertError) throw insertError;
+        newUsers.forEach(u => console.log(`Usuário ${u.name} adicionado!`));
+      }
+
+      // Agrupa os usuários por mês (utilizando o campo "month" ou o mês atual)
+      const usersByMonth = new Map<string, User[]>();
+      for (const user of users) {
+        const month = user.month || new Date().toISOString().slice(0, 7);
+        if (!usersByMonth.has(month)) {
+          usersByMonth.set(month, []);
+        }
+        usersByMonth.get(month)?.push(user);
+      }
+
+      // Para cada grupo mensal, realiza a inserção em lote dos números da sorte
+      for (const [month, usersGroup] of usersByMonth) {
+        // Recupera os usuários que já possuem um número da sorte para o mês
+        const userIdsGroup = usersGroup.map(u => u.id);
+        const luckyUserIds = new Set<number>();
+        for (let i = 0; i < userIdsGroup.length; i += chunkSize) {
+          const chunk = userIdsGroup.slice(i, i + chunkSize);
+          const { data: existingLuckyNumbers, error: checkError } = await supabase
+            .from('luckyNumbers')
+            .select('user_id, number')
+            .in('user_id', chunk)
+            .eq('month', month);
+          if (checkError) throw checkError;
+          existingLuckyNumbers.forEach((l: any) => luckyUserIds.add(l.user_id));
+        }
+
+        // Recupera todos os números já atribuídos para o mês (para evitar duplicidade)
+        const { data: existingNumbersData, error: numbersError } = await supabase
+          .from('luckyNumbers')
+          .select('number')
+          .eq('month', month);
+        if (numbersError) throw numbersError;
+        const existingNumbers = new Set(existingNumbersData.map((n: any) => n.number));
+
+        const newLuckyRecords: { user_id: number, number: string, month: string }[] = [];
+        const generatedNumbers = new Set<string>(); // para rastrear os números gerados nesta operação
+
+        for (const user of usersGroup) {
+          if (luckyUserIds.has(user.id)) {
+            console.log(`Usuário ${user.name} já possui um número da sorte para o mês ${month}.`);
+            continue;
+          }
+          let uniqueLuckyNumber: string;
+          // Gera um número único evitando conflito com os existentes e com os gerados no lote
+          do {
+            uniqueLuckyNumber = this.random4DigitNumber();
+          } while (existingNumbers.has(uniqueLuckyNumber) || generatedNumbers.has(uniqueLuckyNumber));
+
+          generatedNumbers.add(uniqueLuckyNumber);
+          newLuckyRecords.push({ user_id: user.id, number: uniqueLuckyNumber, month });
+        }
+
+        // Insere todos os números da sorte gerados para o grupo em uma única operação
+        if (newLuckyRecords.length > 0) {
+          const { error: insertLuckyError } = await supabase
+            .from('luckyNumbers')
+            .insert(newLuckyRecords);
+          if (insertLuckyError) throw insertLuckyError;
+          newLuckyRecords.forEach(record =>
+            console.log(`Número ${record.number} atribuído ao usuário ${record.user_id} para o mês ${record.month}.`)
+          );
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao adicionar usuário ou atribuir número da sorte:', err);
+    }
+  }
+
+  /**
+   * Gera um número aleatório de 4 dígitos (com zeros à esquerda, se necessário).
+   */
+  random4DigitNumber(): string {
+    return Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+  }
 
   onFileSelected(event: any): void {
     const file = event.target.files[0];
@@ -93,14 +180,14 @@ export class AdminComponent implements OnInit {
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
-        // Converte a planilha para um array onde a primeira linha é o cabeçalho
+        // Converte a planilha para um array onde a primeira linha é o cabeçalho.
         const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
         if (!jsonData.length) {
           alert('O arquivo Excel está vazio.');
           return;
         }
         const headers = jsonData[0].map((h: string) => h.toLowerCase());
-        const users = [];
+        const users: User[] = [];
         for (let i = 1; i < jsonData.length; i++) {
           const row = jsonData[i];
           const user: any = {};
@@ -108,7 +195,7 @@ export class AdminComponent implements OnInit {
             const header = headers[j];
             if (header === 'id') {
               user.id = row[j];
-            } else if (header === 'nome') {
+            } else if (header === 'name') {
               user.name = row[j];
             } else if (header.includes('month')) {
               user.month = row[j];
@@ -121,29 +208,6 @@ export class AdminComponent implements OnInit {
       };
       reader.readAsArrayBuffer(file);
     }
-  }
-
-  async generateUniqueLuckyNumber(): Promise<string> {
-    let luckyNumber: string = '';
-    let exists = true;
-
-    while (exists) {
-      luckyNumber = Math.floor(Math.random() * 10000)
-        .toString()
-        .padStart(4, '0');
-
-      const { data: existingNumber, error } = await supabase
-        .from('luckyNumbers')
-        .select('number')
-        .eq('number', luckyNumber)
-        .limit(1);
-
-      if (error) throw error;
-
-      exists = existingNumber.length > 0;
-    }
-
-    return luckyNumber;
   }
 
   async insertLotteryNumbers() {
@@ -169,21 +233,6 @@ export class AdminComponent implements OnInit {
     }
   }
 
-  async fetchUsersWithNumbers() {
-    try {
-      const { data: users, error: usersError } = await supabase
-        .from('users')
-        .select('id, name, email, luckyNumbers: luckyNumbers(number, month)');
-  
-      if (usersError) throw usersError;
-  
-      this.users = users;
-      console.log('Usuários e números carregados:', this.users);
-    } catch (error) {
-      console.error('Erro ao buscar usuários:', error);
-    }
-  }
-
   downloadJSON() {
     const jsonData = JSON.stringify(this.users, null, 2);
     const blob = new Blob([jsonData], { type: 'application/json' });
@@ -196,7 +245,6 @@ export class AdminComponent implements OnInit {
         user.luckyNumbers?.map(ln => ({
           ID: user.id,
           Nome: user.name,
-          Email: user.email,
           NúmeroDaSorte: ln.number,
           Mês: ln.month
         })) || []
@@ -214,45 +262,70 @@ export class AdminComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Caso não se utilize o upload do Excel para inserir usuários,
-    // é possível chamar uma função para atribuir números da sorte para o mês atual.
-    const month = new Date().toISOString().slice(0, 7);
-    this.assignLuckyNumbersForMonth(month);
-    this.fetchUsersWithNumbers();
+    // Utilize a nova função para buscar todos os usuários em lotes
+    this.fetchAllUsersWithNumbers();
   }
 
+  /**
+   * Atribui números da sorte para um determinado mês,
+   * utilizando chunking e inserção em lote para otimizar a operação.
+   */
   async assignLuckyNumbersForMonth(month: string) {
     try {
+      // Busca todos os usuários
       const { data: users, error: usersError } = await supabase
         .from('users')
         .select('id, name');
-  
       if (usersError) throw usersError;
-  
-      for (const user of users) {
-        // Verifica se o usuário já possui um número da sorte para o mês
-        const { data: existingLuckyNumber, error: checkError } = await supabase
+
+      const chunkSize = 1000;
+      const userIds = users.map(u => u.id);
+      const luckyUserIds = new Set<number>();
+
+      // Verifica quais usuários já possuem um número da sorte para o mês informado
+      for (let i = 0; i < userIds.length; i += chunkSize) {
+        const chunk = userIds.slice(i, i + chunkSize);
+        const { data: existingLuckyNumbers, error: checkError } = await supabase
           .from('luckyNumbers')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('month', month)
-          .limit(1);
-        
+          .select('user_id, number')
+          .in('user_id', chunk)
+          .eq('month', month);
         if (checkError) throw checkError;
-        
-        if (existingLuckyNumber.length > 0) {
+        existingLuckyNumbers.forEach((l: any) => luckyUserIds.add(l.user_id));
+      }
+
+      // Recupera os números existentes para o mês para evitar duplicidade
+      const { data: existingNumbersData, error: numbersError } = await supabase
+        .from('luckyNumbers')
+        .select('number')
+        .eq('month', month);
+      if (numbersError) throw numbersError;
+      const existingNumbers = new Set(existingNumbersData.map((n: any) => n.number));
+
+      const newLuckyRecords: { user_id: number, number: string, month: string }[] = [];
+      const generatedNumbers = new Set<string>();
+
+      for (const user of users) {
+        if (luckyUserIds.has(user.id)) {
           console.log(`Usuário ${user.name} já possui um número da sorte para o mês ${month}.`);
-          continue; // Pula para o próximo usuário
+          continue;
         }
-  
-        const uniqueLuckyNumber = await this.generateUniqueLuckyNumber();
-  
+        let uniqueLuckyNumber: string;
+        do {
+          uniqueLuckyNumber = this.random4DigitNumber();
+        } while (existingNumbers.has(uniqueLuckyNumber) || generatedNumbers.has(uniqueLuckyNumber));
+        generatedNumbers.add(uniqueLuckyNumber);
+        newLuckyRecords.push({ user_id: user.id, number: uniqueLuckyNumber, month });
+      }
+
+      if (newLuckyRecords.length > 0) {
         const { error: insertError } = await supabase
           .from('luckyNumbers')
-          .insert([{ user_id: user.id, number: uniqueLuckyNumber, month }]);
-        
+          .insert(newLuckyRecords);
         if (insertError) throw insertError;
-        console.log(`Número ${uniqueLuckyNumber} atribuído ao usuário ${user.name} para o mês ${month}.`);
+        newLuckyRecords.forEach(record =>
+          console.log(`Número ${record.number} atribuído ao usuário ${record.user_id} para o mês ${record.month}.`)
+        );
       }
     } catch (error) {
       console.error('Erro ao atribuir números da sorte:', error);
