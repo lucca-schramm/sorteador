@@ -58,8 +58,6 @@ export class AdminComponent implements OnInit {
         offset += limit;
       }
       this.users = allUsers;
-      console.log('Todos os usuários carregados:', this.users);
-      this.successMessage = 'Usuários carregados com sucesso!';
     } catch (error) {
       console.error('Erro ao buscar usuários:', error);
       this.errorMessage = 'Erro ao carregar os usuários. Tente novamente mais tarde.';
@@ -167,7 +165,7 @@ export class AdminComponent implements OnInit {
     }
   }
 
-showMessages() {
+  showMessages() {
     if (this.successMessage) {
       alert(this.successMessage);
       this.successMessage = '';
@@ -185,6 +183,20 @@ showMessages() {
   getDrawnNumbers(): { luckynumbers: string[], ref_sorteio: string }[] {
     return this.drawnNumbersRecords;
   }
+
+  async deleteDrawnNumbers() {
+      const { error } = await supabase
+      .from('drawnNumbers')
+      .delete()
+      .gt('id', 0);
+
+      if (error) {
+          console.error("Erro ao deletar números da sorte:", error.message);
+          throw error;
+      }
+      this.refreshData();
+  }
+
   
   onFileSelected(event: any): void {
     const file = event.target.files[0];
@@ -225,9 +237,7 @@ showMessages() {
     }
   }
 
-  /**
-   * Insere os números sorteados no banco, adicionando também a referência do sorteio (mês).
-   */
+
   async insertLotteryNumbers() {
     const lotteryNumbers = this.lotteryNumbersInput
       .split(',')
@@ -258,9 +268,19 @@ showMessages() {
     }
   }
 
-  /**
-   * Retorna o nome do mês corrente em português.
-   */
+  getSortedDrawResults(drawnNumbers: { luckynumbers: string[], ref_sorteio: string }[], users: User[]) {
+    this.drawResults = drawnNumbers.flatMap(drawnNumber =>
+      drawnNumber.luckynumbers.map((number, index) => {
+        const user = users.find(u => u.luckyNumbers?.some(ln => ln.number === number));
+        return { number, position: index + 1, user: user || null };
+      })
+    );
+  
+    console.log('Números sorteados com usuários correspondentes:', this.drawResults);
+  }
+  
+
+
   getCurrentMonthName(): string {
     const months = [
       'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
@@ -304,36 +324,46 @@ showMessages() {
   }
 
   refreshData(): void {
-    this.fetchAllUsersWithNumbers();
-    this.fetchDrawnNumbers();
+    
+    let result = this.fetchAllUsersWithNumbers().then(() => {
+      this.fetchDrawnNumbers();
+    });
+    this.successMessage = 'Dados carregados com sucesso!';
+    if (!result) {
+      console.error('Erro ao buscar Dados');
+      this.errorMessage = 'Erro ao carregar os Dados. Tente novamente mais tarde.';
+    } 
+    this.showMessages();
   }
 
-  /**
-   * Busca os registros de números sorteados, exibindo os números e o mês em que foram sorteados.
-   */
+
   async fetchDrawnNumbers() {
     try {
       const { data, error } = await supabase
         .from('drawnNumbers')
         .select('luckynumbers, ref_sorteio');
-        if (error) throw error;
-        this.drawnNumbersRecords = [...(data || [])];
-      console.log('Números sorteados carregados:', this.drawnNumbersRecords);
+  
+      if (error) throw error;
+  
+      this.drawnNumbersRecords = data || [];
+  
+      // Agora buscamos os usuários correspondentes
+      this.getSortedDrawResults(this.drawnNumbersRecords, this.users);
     } catch (error) {
-      await console.error('Erro ao buscar números sorteados:', error);
-      alert('Erro ao carregar os números sorteados.');
+      console.error('Erro ao buscar números sorteados:', error);
+      this.errorMessage = 'Erro ao buscar os números sorteados.';
+    } finally {
+      this.showMessages();
     }
   }
+  
 
   ngOnInit(): void {
-    this.fetchAllUsersWithNumbers();
-    this.fetchDrawnNumbers();
+    this.fetchAllUsersWithNumbers().then(() => {
+      this.fetchDrawnNumbers();
+    });
   }
 
-  /**
-   * Atribui números da sorte para um determinado mês,
-   * utilizando chunking e inserção em lote para otimizar a operação.
-   */
   async assignLuckyNumbersForMonth(month: string) {
     try {
       const { data: users, error: usersError } = await supabase

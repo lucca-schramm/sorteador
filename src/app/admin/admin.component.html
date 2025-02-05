@@ -49,11 +49,16 @@
     <input type="text" id="lotteryNumbers" [(ngModel)]="lotteryNumbersInput" placeholder="Ex: 1234, 6789, 0123, ..."
       class="w-full px-4 py-2 mt-2 border border-gray-300 rounded-md" />
   </div>
-  <div class="text-center mt-6">
+  <div class="flex justify-center mt-6 gap-4">
     <button
-      class="px-6 py-3 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 transition duration-200"
+      class="px-6 py-3 bg-green-500 text-white font-semibold rounded-lg shadow-md hover:bg-green-600 transition duration-200"
       (click)="insertLotteryNumbers()">
       Atribuir Números Sorteados
+    </button>
+    <button
+      class="px-6 py-3 bg-red-500 text-white font-semibold rounded-lg shadow-md hover:bg-red-600 transition duration-200"
+      (click)="deleteDrawnNumbers()">
+      Excluir Números Sorteados
     </button>
   </div>
   <div>
